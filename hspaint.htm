@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Imágenes para Sega Megadrive</title>
+    <link rel="stylesheet" type="text/css" href="spectrum.css">
+</head>
+<body>
+    <input type="file" accept="image/*" onchange="cargarImagen(this)">
+    
+    <canvas id="lienzo" style="border: 1px solid #000;"></canvas>
+
+    <div id="paletaContainer"></div>
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="spectrum.js"></script>
+    <script>
+        // Función para cargar una imagen en el canvas
+        function cargarImagen(input) {
+            const file = input.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                const img = new Image();
+                img.onload = function () {
+                    const canvas = document.getElementById('lienzo');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpiar el canvas
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    // Obtener los colores de la paleta
+                    const coloresPaleta = obtenerColoresPaleta(img);
+
+                    // Mostrar los colores en el contenedor con Spectrum
+                    mostrarColoresConSpectrum(coloresPaleta);
+                };
+                img.src = e.target.result;
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        // Función para obtener los colores de la paleta de una imagen indexada
+        function obtenerColoresPaleta(imagen) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = imagen.width;
+            canvas.height = imagen.height;
+            ctx.drawImage(imagen, 0, 0);
+
+            const imageData = ctx.getImageData(0, 0, imagen.width, imagen.height).data;
+            const coloresPaleta = new Set();
+
+            for (let i = 0; i < imageData.length; i += 4) {
+                const color = `rgb(${imageData[i]}, ${imageData[i + 1]}, ${imageData[i + 2]})`;
+                coloresPaleta.add(color);
+            }
+
+            return Array.from(coloresPaleta);
+        }
+
+        // Función para mostrar los colores de la paleta con Spectrum
+        function mostrarColoresConSpectrum(colores) {
+            const paletaContainer = document.getElementById('paletaContainer');
+            paletaContainer.innerHTML = '';
+
+            colores.forEach((color, index) => {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = color;
+                paletaContainer.appendChild(input);
+
+                // Inicializar Spectrum color picker
+                $(input).spectrum();
+            });
+        }
+
+        // Cargar una imagen de ejemplo inicial
+        cargarImagen({ files: [new File([""], "imagen.png")] });
+    </script>
+</body>
+</html>
