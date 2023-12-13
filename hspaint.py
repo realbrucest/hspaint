@@ -4,7 +4,15 @@ from PyQt5.QtCore import Qt, QEvent
 from PIL import Image
 import sys
 
+
 DEFAULT_ZOOM_LEVEL = 4.0
+
+
+class ImageLine:
+    def __init__(self, image, palette_index):
+        self.image = image
+        self.palette_index = palette_index
+
 
 class ImageEditorWidget(QWidget):
     def __init__(self, image_path):
@@ -18,10 +26,12 @@ class ImageEditorWidget(QWidget):
         self.edit_history = []
 
         # Crear una etiqueta para mostrar la imagen completa con todas las líneas
-        self.image_label = QLabel(self)
-        self.image_label.setPixmap(QPixmap.fromImage(self.convert_pil_to_qimage(self.image)))
+        self.image_lines = []
+        self.initialize_image_lines()
 
         # Colocar la etiqueta dentro de un QScrollArea
+        self.image_label = QLabel(self)
+        self.image_label.setPixmap(QPixmap.fromImage(self.convert_pil_to_qimage(self.get_combined_image())))
         self.scroll_area = QScrollArea(self)
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setWidget(self.image_label)
@@ -93,10 +103,13 @@ class ImageEditorWidget(QWidget):
         # Conectar el evento de movimiento del ratón para actualizar la posición Y
         self.scroll_area.installEventFilter(self)
 
-    def eventFilter(self, source, event):
-        if source == self.scroll_area and event.type() == QEvent.MouseMove:
-            self.update_mouse_position(event)
-        return super().eventFilter(source, event)
+    def initialize_image_lines(self):
+        # Crear una línea para cada fila de la imagen original
+        for y in range(self.image.height):
+            line_image = self.image.crop((0, y, self.image.width, y + 1))
+            palette_index = 0  # Inicializar con la paleta original
+            image_line = ImageLine(line_image, palette_index)
+            self.image_lines.append(image_line)
 
     def convert_pil_to_qimage(self, pil_image):
         image = pil_image.convert("RGBA")
@@ -112,6 +125,15 @@ class ImageEditorWidget(QWidget):
         # Obtener el color de la paleta correspondiente al índice
         color = palette[index * 3: (index + 1) * 3]
         return tuple(color)
+
+    def get_combined_image(self):
+        # Crear una nueva imagen con todas las líneas combinadas
+        combined_image = Image.new("RGBA", (self.image.width, self.image.height))
+
+        for y, image_line in enumerate(self.image_lines):
+            combined_image.paste(image_line.image, (0, y))
+
+        return combined_image
 
     def update_color_label(self, index):
         color = self.get_palette_color(index)
@@ -138,22 +160,22 @@ class ImageEditorWidget(QWidget):
             self.update_image_with_current_zoom()
 
     def change_palette_color_at_index(self, index, new_color):
-        # Obtener la paleta actual
-        palette = self.image.getpalette()
-
-        # Actualizar el color en la paleta
-        palette[index * 3: (index + 1) * 3] = new_color
-
-        # Aplicar la paleta actualizada a la imagen
-        self.image.putpalette(palette)
+        # Obtener la paleta actualizada
+        for image_line in self.image_lines:
+            palette = image_line.image.getpalette()
+            palette[index * 3: (index + 1) * 3] = new_color
+            image_line.image.putpalette(palette)
 
     def set_zoom_level(self, level):
         # Guardar el estado actual en el historial
         self.edit_history.append(self.get_current_state())
 
-        new_size = (int(self.image.width * level), int(self.image.height * level))
-        resized_image = self.image.resize(new_size)
-        self.image_label.setPixmap(QPixmap.fromImage(self.convert_pil_to_qimage(resized_image)))
+        new_size = (self.image.width, int(self.image.height * level))
+        for image_line in self.image_lines:
+            image_line.image = image_line.image.resize(new_size)
+
+        # Actualizar la etiqueta de la imagen con el nivel de zoom actual
+        self.update_image_with_current_zoom()
 
     def get_current_zoom_level(self):
         for i, radio_button in enumerate(self.zoom_radio_buttons):
@@ -166,24 +188,28 @@ class ImageEditorWidget(QWidget):
             last_state = self.edit_history.pop()
 
             # Restaurar la paleta y el nivel de zoom
-            self.image.putpalette(last_state['palette'])
-            self.set_zoom_level(last_state['zoom_level'])
+            for y, palette_index in last_state['palettes'].items():
+                self.image_lines[y].palette_index = palette_index
 
-            # Revertir los colores de los color-pickers
-            for i, color in enumerate(last_state['palette'][:48:3]):  # Tomar solo los valores R de la paleta
-                self.color_label_group[i].setStyleSheet(f"background-color: rgb{self.original_colors[i]};")
-
+            # Actualizar la etiqueta de la imagen con el nivel de zoom actual
             self.update_image_with_current_zoom()
 
     def update_image_with_current_zoom(self):
         current_zoom = self.get_current_zoom_level()
-        new_size = (int(self.image.width * current_zoom), int(self.image.height * current_zoom))
-        resized_image = self.image.resize(new_size)
+
+        # Crear una nueva imagen con todas las líneas combinadas
+        combined_image = self.get_combined_image()
+
+        # Escalar la imagen de acuerdo al nivel de zoom
+        new_size = (int(combined_image.width * current_zoom), int(combined_image.height * current_zoom))
+        resized_image = combined_image.resize(new_size)
+
+        # Mostrar la imagen combinada y escalada en la etiqueta
         self.image_label.setPixmap(QPixmap.fromImage(self.convert_pil_to_qimage(resized_image)))
 
     def get_current_state(self):
         return {
-            'palette': self.image.getpalette().copy(),
+            'palettes': {y: image_line.palette_index for y, image_line in enumerate(self.image_lines)},
             'zoom_level': self.get_current_zoom_level(),
         }
 
@@ -215,7 +241,5 @@ if __name__ == '__main__':
 
     image_editor = ImageEditorWidget(image_path)
     window.setCentralWidget(image_editor)
-
-    
 
     sys.exit(app.exec_())
