@@ -60,10 +60,24 @@ class ImageEditorWidget(QWidget):
         undo_shortcut.activated.connect(self.undo_last_change)
 
         # Diseño del diseño principal
-        layout = QVBoxLayout(self)
-        layout.addWidget(scroll_area)  # Usar QScrollArea en lugar de la etiqueta directamente
-        layout.addWidget(color_group_box)
-        layout.addWidget(zoom_group_box)
+        main_layout = QVBoxLayout(self)
+        
+        # Dividir la ventana en dos secciones: izquierda (QScrollArea) y derecha (panel lateral)
+        main_layout_splitter = QHBoxLayout()
+        main_layout_splitter.addWidget(scroll_area)
+        
+        # Agregar el panel lateral
+        side_panel = QWidget(self)
+        side_panel.setFixedWidth(240)  # Ancho del panel lateral
+        side_layout = QVBoxLayout(side_panel)
+        side_layout.addWidget(QLabel("Placeholder Text"))  # Contenido del panel lateral
+        
+        main_layout_splitter.addWidget(side_panel)
+        main_layout.addLayout(main_layout_splitter)
+        
+        # Agregar la paleta y el grupo de zoom debajo de QScrollArea y el panel lateral
+        main_layout.addWidget(color_group_box)
+        main_layout.addWidget(zoom_group_box)
 
         self.updateGeometry()
 
