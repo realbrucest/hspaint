@@ -3,6 +3,8 @@ from PyQt5.QtGui import QPixmap, QImage, QColor, QKeySequence
 from PIL import Image
 import sys
 
+DEFAULT_ZOOM_LEVEL = 4.0
+
 class ImageEditorWidget(QWidget):
     def __init__(self, image_path):
         super().__init__()
@@ -51,9 +53,10 @@ class ImageEditorWidget(QWidget):
             self.zoom_radio_buttons.append(radio_button)
             zoom_layout.addWidget(radio_button)
 
-        # Establecer 4x como el zoom inicial
-        self.zoom_radio_buttons[4].setChecked(True)  # Índice 4 corresponde a 4.0 en la lista de niveles de zoom
-        self.set_zoom_level(4.0)
+        # Establecer el zoom predeterminado
+        default_zoom_index = zoom_levels.index(DEFAULT_ZOOM_LEVEL)
+        self.zoom_radio_buttons[default_zoom_index].setChecked(True)
+        self.set_zoom_level(DEFAULT_ZOOM_LEVEL)
 
         # Atajo de teclado para deshacer (Ctrl+Z)
         undo_shortcut = QShortcut(QKeySequence("Ctrl+Z"), self)
@@ -88,11 +91,6 @@ class ImageEditorWidget(QWidget):
         q_image = QImage(image.tobytes("raw", "RGBA"), width, height, bytes_per_line, QImage.Format_RGBA8888)
         return q_image
 
-    def convert_qimage_to_pil(self, q_image):
-        buffer = q_image.bits().asstring(q_image.width() * q_image.height() * 4)
-        pil_image = Image.frombytes("RGBA", (q_image.width(), q_image.height()), buffer, "raw", "RGBA", 0, 1)
-        return pil_image
-
     def get_palette_color(self, index):
         # Obtener la paleta actual
         palette = self.image.getpalette()
@@ -106,19 +104,15 @@ class ImageEditorWidget(QWidget):
         self.color_label_group[index].setStyleSheet(f"background-color: rgb{color};")
 
     def show_color_picker(self, event, index):
-        # Guardar la paleta y el nivel de zoom actual en el historial
-        current_state = {
-            'palette': self.image.getpalette().copy(),
-            'zoom_level': self.get_current_zoom_level(),
-        }
-        self.edit_history.append(current_state)
-
         # Abrir el diálogo de selección de color
         color = QColorDialog.getColor(QColor(*self.get_palette_color(index)), self)
 
         if color.isValid():
             # Convertir el color de QColor a RGB tuple
             new_color = (color.red(), color.green(), color.blue())
+
+            # Guardar el estado actual en el historial
+            self.edit_history.append(self.get_current_state())
 
             # Cambiar el color en la paleta
             self.change_palette_color_at_index(index, new_color)
@@ -140,12 +134,8 @@ class ImageEditorWidget(QWidget):
         self.image.putpalette(palette)
 
     def set_zoom_level(self, level):
-        # Guardar la paleta y el nivel de zoom actual en el historial
-        current_state = {
-            'palette': self.image.getpalette().copy(),
-            'zoom_level': self.get_current_zoom_level(),
-        }
-        self.edit_history.append(current_state)
+        # Guardar el estado actual en el historial
+        self.edit_history.append(self.get_current_state())
 
         new_size = (int(self.image.width * level), int(self.image.height * level))
         resized_image = self.image.resize(new_size)
@@ -176,6 +166,12 @@ class ImageEditorWidget(QWidget):
         new_size = (int(self.image.width * current_zoom), int(self.image.height * current_zoom))
         resized_image = self.image.resize(new_size)
         self.image_label.setPixmap(QPixmap.fromImage(self.convert_pil_to_qimage(resized_image)))
+
+    def get_current_state(self):
+        return {
+            'palette': self.image.getpalette().copy(),
+            'zoom_level': self.get_current_zoom_level(),
+        }
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
