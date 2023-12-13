@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QVBoxLayout, QHBoxLayout, QColorDialog, QWidget, QFileDialog, QRadioButton, QGroupBox, QShortcut, QScrollArea
 from PyQt5.QtGui import QPixmap, QImage, QColor, QKeySequence
+from PyQt5.QtCore import Qt, QEvent
 from PIL import Image
 import sys
 
@@ -16,16 +17,16 @@ class ImageEditorWidget(QWidget):
         # Historial de paletas y niveles de zoom para deshacer
         self.edit_history = []
 
-        # Crear una etiqueta para mostrar la imagen
+        # Crear una etiqueta para mostrar la imagen completa con todas las líneas
         self.image_label = QLabel(self)
         self.image_label.setPixmap(QPixmap.fromImage(self.convert_pil_to_qimage(self.image)))
 
         # Colocar la etiqueta dentro de un QScrollArea
-        scroll_area = QScrollArea(self)
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setWidget(self.image_label)
+        self.scroll_area = QScrollArea(self)
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setWidget(self.image_label)
 
-        # Grupo de labels para la paleta de 16 colores
+        # Grupo de labels para la paleta de colores
         color_group_box = QGroupBox("Paleta de Colores")
         color_layout = QHBoxLayout(color_group_box)
         color_layout.setContentsMargins(0, 0, 0, 0)
@@ -64,25 +65,38 @@ class ImageEditorWidget(QWidget):
 
         # Diseño del diseño principal
         main_layout = QVBoxLayout(self)
-        
+
         # Dividir la ventana en dos secciones: izquierda (QScrollArea) y derecha (panel lateral)
         main_layout_splitter = QHBoxLayout()
-        main_layout_splitter.addWidget(scroll_area)
-        
+        main_layout_splitter.addWidget(self.scroll_area)
+
         # Agregar el panel lateral
         side_panel = QWidget(self)
         side_panel.setFixedWidth(240)  # Ancho del panel lateral
         side_layout = QVBoxLayout(side_panel)
-        side_layout.addWidget(QLabel("Placeholder Text"))  # Contenido del panel lateral
-        
+
+        # Nuevo QLabel para mostrar la posición X
+        self.x_position_label = QLabel(self)
+        side_layout.addWidget(self.x_position_label)
+
+        # Nuevo QLabel para mostrar la posición Y
+        self.y_position_label = QLabel(self)
+        side_layout.addWidget(self.y_position_label)
+
         main_layout_splitter.addWidget(side_panel)
         main_layout.addLayout(main_layout_splitter)
-        
+
         # Agregar la paleta y el grupo de zoom debajo de QScrollArea y el panel lateral
         main_layout.addWidget(color_group_box)
         main_layout.addWidget(zoom_group_box)
 
-        self.updateGeometry()
+        # Conectar el evento de movimiento del ratón para actualizar la posición Y
+        self.scroll_area.installEventFilter(self)
+
+    def eventFilter(self, source, event):
+        if source == self.scroll_area and event.type() == QEvent.MouseMove:
+            self.update_mouse_position(event)
+        return super().eventFilter(source, event)
 
     def convert_pil_to_qimage(self, pil_image):
         image = pil_image.convert("RGBA")
@@ -96,7 +110,7 @@ class ImageEditorWidget(QWidget):
         palette = self.image.getpalette()
 
         # Obtener el color de la paleta correspondiente al índice
-        color = palette[index * 3 : (index + 1) * 3]
+        color = palette[index * 3: (index + 1) * 3]
         return tuple(color)
 
     def update_color_label(self, index):
@@ -128,7 +142,7 @@ class ImageEditorWidget(QWidget):
         palette = self.image.getpalette()
 
         # Actualizar el color en la paleta
-        palette[index * 3 : (index + 1) * 3] = new_color
+        palette[index * 3: (index + 1) * 3] = new_color
 
         # Aplicar la paleta actualizada a la imagen
         self.image.putpalette(palette)
@@ -173,6 +187,34 @@ class ImageEditorWidget(QWidget):
             'zoom_level': self.get_current_zoom_level(),
         }
 
+    def update_mouse_position(self, event):
+        # Obtener la posición X e Y del ratón
+        x_position = int(event.x() / self.get_current_zoom_level())
+        y_position = int(event.y() / self.get_current_zoom_level())
+
+        # Actualizar los QLabel en el panel lateral
+        self.x_position_label.setText(f"Posición X: {x_position}")
+        self.y_position_label.setText(f"Posición Y: {y_position}")
+
+    def apply_copper_effect(image_widget, lines_per_group=8):
+        total_lines = image_widget.image.height
+        for start_line in range(0, total_lines, lines_per_group):
+            # Obtener la paleta actual
+            palette = image_widget.image.getpalette()
+
+            # Modificar los cuatro primeros índices de color
+            for i in range(4):
+                new_color = (i * 10, i * 10, i * 10)  # Cambiar por los colores deseados
+                palette[i * 3: (i + 1) * 3] = new_color
+
+            # Aplicar la paleta modificada a las líneas correspondientes
+            for line in range(start_line, min(start_line + lines_per_group, total_lines)):
+                image_widget.change_palette_color_at_index(line, palette)
+
+            # Actualizar la etiqueta de la imagen con el nivel de zoom actual
+            image_widget.update_image_with_current_zoom()
+
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
 
@@ -188,8 +230,10 @@ if __name__ == '__main__':
     window.setGeometry(100, 100, 800, 600)
     window.setWindowTitle("Editor de Imágenes")
     window.showMaximized()  # Mostrar maximizado
-    
+
     image_editor = ImageEditorWidget(image_path)
     window.setCentralWidget(image_editor)
+
+    
 
     sys.exit(app.exec_())
