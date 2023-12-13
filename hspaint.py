@@ -196,24 +196,6 @@ class ImageEditorWidget(QWidget):
         self.x_position_label.setText(f"Posición X: {x_position}")
         self.y_position_label.setText(f"Posición Y: {y_position}")
 
-    def apply_copper_effect(image_widget, lines_per_group=8):
-        total_lines = image_widget.image.height
-        for start_line in range(0, total_lines, lines_per_group):
-            # Obtener la paleta actual
-            palette = image_widget.image.getpalette()
-
-            # Modificar los cuatro primeros índices de color
-            for i in range(4):
-                new_color = (i * 10, i * 10, i * 10)  # Cambiar por los colores deseados
-                palette[i * 3: (i + 1) * 3] = new_color
-
-            # Aplicar la paleta modificada a las líneas correspondientes
-            for line in range(start_line, min(start_line + lines_per_group, total_lines)):
-                image_widget.change_palette_color_at_index(line, palette)
-
-            # Actualizar la etiqueta de la imagen con el nivel de zoom actual
-            image_widget.update_image_with_current_zoom()
-
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
