@@ -36,7 +36,7 @@ class ImageEditorWidget(QWidget):
         self.initialize_image_lines()
 
         # Obtener la paleta inicial
-        self.palettes_array = self.get_palettes_array()
+        self.initial_palette = [self.get_palette_color(i) for i in range(16)]
 
         # Colocar la etiqueta dentro de un QScrollArea
         self.image_label = QLabel(self)
@@ -156,9 +156,12 @@ class ImageEditorWidget(QWidget):
         if state == Qt.Checked:
             self.apply_copper_effect()
             self.copper_status_label.setText("Efecto Copper: Activado")
+            self.initial_palette_group.show()  # Mostrar el grupo de la paleta inicial
         else:
             self.reset_copper_effect()
             self.copper_status_label.setText("Efecto Copper: Desactivado")
+            self.initial_palette_group.hide()  # Ocultar el grupo de la paleta inicial
+
 
     
     def convert_pil_to_qimage(self, pil_image):
@@ -235,6 +238,14 @@ class ImageEditorWidget(QWidget):
             # Actualizar la etiqueta de la imagen con el nivel de zoom actual
             self.update_image_with_current_zoom()
 
+    def change_palette(self, new_palette):
+        # Cambiar los colores en la paleta
+        for i in range(16):
+            self.change_palette_color_at_index(i % 16, new_palette[i])
+
+            # Actualizar el color del label
+            self.update_color_label(i % 16)
+
     def change_palette_color_at_index(self, index, new_color):
         # Obtener la paleta actualizada
         for image_line in self.image_lines:
@@ -269,7 +280,7 @@ class ImageEditorWidget(QWidget):
         self.edit_history.append(self.get_current_state())
 
         # Obtener la paleta actualizada desde las líneas de la imagen
-        current_palette = self.get_palettes_array()
+        current_palette = [self.get_palette_color(i) for i in range(16)]
 
         # Crear una nueva instancia de Copper y agregarla a la lista
         new_copper = Copper(self.copper_position_slider.value(), {i: color for i, color in enumerate(current_palette)})
@@ -289,8 +300,41 @@ class ImageEditorWidget(QWidget):
         self.copper_status_label.setText("Efecto Copper: Activado")
 
         # Mostrar la paleta en el panel lateral
-        self.show_copper_palette(new_copper)
+        self.show_copper_palettes()
 
+    def show_copper_palettes(self):
+        # Limpiar los QLabel anteriores en el layout lateral
+        for i in reversed(range(self.side_layout.count())):
+            item = self.side_layout.itemAt(i)
+            if item.widget():
+                item.widget().setParent(None)
+
+        # Crear un grupo para la paleta inicial
+        self.initial_palette_group = QGroupBox("Paleta Inicial")
+        self.initial_color_layout = QHBoxLayout(self.initial_palette_group)
+
+        for i, color in enumerate(self.initial_palette):
+            color_label = QLabel(self)
+            color_label.setFixedSize(30, 30)
+            color_label.setStyleSheet(f"background-color: rgb{color};")
+            self.initial_color_layout.addWidget(color_label)
+
+        # Agregar el grupo de la paleta inicial al layout lateral
+        self.side_layout.addWidget(self.initial_palette_group)
+
+        # Crear un grupo para cada paleta de Copper
+        for i, copper in enumerate(self.coppers):
+            copper_palette_group = QGroupBox(f"Paleta de Copper {i + 1}")
+            copper_color_layout = QHBoxLayout(copper_palette_group)
+
+            for j, color in enumerate(copper.palette.values()):
+                color_label = QLabel(self)
+                color_label.setFixedSize(30, 30)
+                color_label.setStyleSheet(f"background-color: rgb{color};")
+                copper_color_layout.addWidget(color_label)
+
+            # Agregar el grupo de Copper al layout lateral
+            self.side_layout.addWidget(copper_palette_group)
 
     def show_copper_palette(self, copper):
         # Limpiar los QLabel anteriores en el layout lateral
@@ -335,11 +379,7 @@ class ImageEditorWidget(QWidget):
         self.edit_history.append(self.get_current_state())
 
         # Cambiar los colores en la paleta
-        for i in range(16):
-            self.change_palette_color_at_index(i % 16, new_palette[i])
-
-            # Actualizar el color del label
-            self.update_color_label(i % 16)
+        self.change_palette(new_palette)
 
         # Actualizar la etiqueta de la imagen con el nivel de zoom actual
         self.update_image_with_current_zoom()
