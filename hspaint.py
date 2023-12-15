@@ -12,6 +12,11 @@ class ImageLine:
         self.image = image
         self.palette_index = palette_index
 
+class Copper:
+    def __init__(self, position, palette):
+        self.position = position
+        self.palette = palette
+
 class ImageEditorWidget(QWidget):
     def __init__(self, image_path):
         super().__init__()
@@ -23,9 +28,15 @@ class ImageEditorWidget(QWidget):
         # Historial de paletas y niveles de zoom para deshacer
         self.edit_history = []
 
+        # Lista para almacenar las instancias de Copper
+        self.coppers = []
+
         # Crear una etiqueta para mostrar la imagen completa con todas las líneas
         self.image_lines = []
         self.initialize_image_lines()
+
+        # Obtener la paleta inicial
+        self.palettes_array = self.get_palettes_array()
 
         # Colocar la etiqueta dentro de un QScrollArea
         self.image_label = QLabel(self)
@@ -96,17 +107,23 @@ class ImageEditorWidget(QWidget):
         # Agregar el panel lateral
         side_panel = QWidget(self)
         side_panel.setFixedWidth(240)  # Ancho del panel lateral
-        side_layout = QVBoxLayout(side_panel)
+        self.side_layout = QVBoxLayout(side_panel)
 
         # Nuevo QLabel para mostrar la posición X
         self.x_position_label = QLabel(self)
-        side_layout.addWidget(self.x_position_label)
+        self.side_layout.addWidget(self.x_position_label)
 
         # Nuevo QLabel para mostrar la posición Y
         self.y_position_label = QLabel(self)
-        side_layout.addWidget(self.y_position_label)
+        self.side_layout.addWidget(self.y_position_label)
 
-        # ... (continuación del código)
+        # Nuevo QLabel para mostrar la posición Y del slider
+        self.slider_position_label = QLabel(self)
+        self.side_layout.addWidget(self.slider_position_label)
+
+        # Nuevo QLabel para mostrar si el efecto Copper está activado
+        self.copper_status_label = QLabel(self)
+        self.side_layout.addWidget(self.copper_status_label)
 
         main_layout_splitter.addWidget(side_panel)
         main_layout.addLayout(main_layout_splitter)
@@ -123,6 +140,11 @@ class ImageEditorWidget(QWidget):
         # Conectar el evento de movimiento del ratón para actualizar la posición Y
         self.scroll_area.installEventFilter(self)
 
+    def get_palettes_array(self):
+        # Obtener la paleta inicial desde las líneas de la imagen
+        self.initialize_image_lines()
+        return [self.get_palette_color(image_line.palette_index) for image_line in self.image_lines]
+
     def initialize_image_lines(self):
         # Inicializar las líneas de la imagen
         for i in range(self.image.height):
@@ -133,8 +155,11 @@ class ImageEditorWidget(QWidget):
     def toggle_copper_effect(self, state):
         if state == Qt.Checked:
             self.apply_copper_effect()
+            self.copper_status_label.setText("Efecto Copper: Activado")
         else:
             self.reset_copper_effect()
+            self.copper_status_label.setText("Efecto Copper: Desactivado")
+
     
     def convert_pil_to_qimage(self, pil_image):
         image = pil_image.convert("RGBA")
@@ -243,12 +268,60 @@ class ImageEditorWidget(QWidget):
         # Guardar el estado actual en el historial
         self.edit_history.append(self.get_current_state())
 
+        # Obtener la paleta actualizada desde las líneas de la imagen
+        current_palette = self.get_palettes_array()
+
+        # Crear una nueva instancia de Copper y agregarla a la lista
+        new_copper = Copper(self.copper_position_slider.value(), {i: color for i, color in enumerate(current_palette)})
+        self.coppers.append(new_copper)
+
         # Aplicar el efecto Copper cambiando las paletas de las líneas de la imagen
         for i, image_line in enumerate(self.image_lines):
             image_line.palette_index = i % 16
 
         # Actualizar la etiqueta de la imagen con el nivel de zoom actual
         self.update_image_with_current_zoom()
+
+        # Actualizar el QLabel de posición del slider
+        self.slider_position_label.setText(f"Posición Y del Slider: {self.copper_position_slider.value()}")
+
+        # Actualizar el QLabel de estado del Copper
+        self.copper_status_label.setText("Efecto Copper: Activado")
+
+        # Mostrar la paleta en el panel lateral
+        self.show_copper_palette(new_copper)
+
+
+    def show_copper_palette(self, copper):
+        # Limpiar los QLabel anteriores en el layout lateral
+        for i in reversed(range(self.side_layout.count())):
+            item = self.side_layout.itemAt(i)
+            if item.widget():
+                item.widget().setParent(None)
+
+        # Crear un grupo para la paleta original
+        original_palette_group = QGroupBox("Paleta Original")
+        original_color_layout = QHBoxLayout(original_palette_group)
+        
+        for i, color in enumerate(self.original_colors):
+            color_label = QLabel(self)
+            color_label.setFixedSize(30, 30)
+            color_label.setStyleSheet(f"background-color: rgb{color};")
+            original_color_layout.addWidget(color_label)
+
+        # Crear un grupo para la paleta de Copper
+        copper_palette_group = QGroupBox("Paleta de Copper")
+        copper_color_layout = QHBoxLayout(copper_palette_group)
+        
+        for i, color in enumerate(copper.palette):
+            color_label = QLabel(self)
+            color_label.setFixedSize(30, 30)
+            color_label.setStyleSheet(f"background-color: rgb{color};")
+            copper_color_layout.addWidget(color_label)
+
+        # Agregar los grupos al layout lateral
+        self.side_layout.addWidget(original_palette_group)
+        self.side_layout.addWidget(copper_palette_group)
 
     def reset_copper_effect(self):
         # Restaurar el estado del efecto Copper
@@ -275,12 +348,18 @@ class ImageEditorWidget(QWidget):
         # Guardar el estado actual en el historial
         self.edit_history.append(self.get_current_state())
 
+        # Obtener la paleta actual
+        self.palettes_array = self.get_palettes_array()
+
         # Desplazar el efecto Copper cambiando las paletas de las líneas de la imagen
         for i, image_line in enumerate(self.image_lines):
             image_line.palette_index = (i + position) % 16
 
         # Actualizar la etiqueta de la imagen con el nivel de zoom actual
         self.update_image_with_current_zoom()
+
+        # Actualizar el QLabel de posición del slider
+        self.slider_position_label.setText(f"Posición Y del Slider: {position}")
 
     def update_mouse_position(self, event):
         # Obtener la posición X e Y del ratón
