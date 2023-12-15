@@ -416,23 +416,3 @@ class ImageEditorWidget(QWidget):
             self.update_mouse_position(event)
         return super().eventFilter(watched, event)
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-
-    # Abre un cuadro de diálogo para seleccionar una imagen
-    file_dialog = QFileDialog()
-    image_path, _ = file_dialog.getOpenFileName(None, "Seleccionar Imagen", "", "Images (*.png *.xpm *.jpg *.bmp);;All Files (*)")
-
-    if not image_path:
-        sys.exit()
-
-    # Crea y muestra la ventana principal de la aplicación maximizada
-    window = QMainWindow()
-    window.setGeometry(100, 100, 800, 600)
-    window.setWindowTitle("Editor de Imágenes")
-    window.showMaximized()  # Mostrar maximizado
-
-    image_editor = ImageEditorWidget(image_path)
-    window.setCentralWidget(image_editor)
-
-    sys.exit(app.exec_())
