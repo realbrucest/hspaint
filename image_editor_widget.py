@@ -125,6 +125,19 @@ class ImageEditorWidget(QWidget):
         self.copper_status_label = QLabel(self)
         self.side_layout.addWidget(self.copper_status_label)
 
+        # Grupo para la paleta inicial
+        self.initial_palette_group = QGroupBox("Paleta Inicial")
+        self.initial_color_layout = QHBoxLayout(self.initial_palette_group)
+
+        for i, color in enumerate(self.initial_palette):
+            color_label = QLabel(self)
+            color_label.setFixedSize(30, 30)
+            color_label.setStyleSheet(f"background-color: rgb{color};")
+            self.initial_color_layout.addWidget(color_label)
+
+        # Agregar el grupo de la paleta inicial al layout lateral
+        self.side_layout.addWidget(self.initial_palette_group)
+
         main_layout_splitter.addWidget(side_panel)
         main_layout.addLayout(main_layout_splitter)
 
@@ -304,68 +317,30 @@ class ImageEditorWidget(QWidget):
 
     def show_copper_palettes(self):
         # Limpiar los QLabel anteriores en el layout lateral
-        for i in reversed(range(self.side_layout.count())):
-            item = self.side_layout.itemAt(i)
-            if item.widget():
-                item.widget().setParent(None)
+        self.clear_layout(self.side_layout)
 
-        # Crear un grupo para la paleta inicial
-        self.initial_palette_group = QGroupBox("Paleta Inicial")
-        self.initial_color_layout = QHBoxLayout(self.initial_palette_group)
+        # Función auxiliar para crear y agregar un grupo de paleta
+        def add_palette_group(title, colors):
+            group = QGroupBox(title)
+            layout = QHBoxLayout(group)
+            for color in colors:
+                label = QLabel(self)
+                label.setFixedSize(30, 30)
+                label.setStyleSheet(f"background-color: rgb{color};")
+                layout.addWidget(label)
+            self.side_layout.addWidget(group)
 
-        for i, color in enumerate(self.initial_palette):
-            color_label = QLabel(self)
-            color_label.setFixedSize(30, 30)
-            color_label.setStyleSheet(f"background-color: rgb{color};")
-            self.initial_color_layout.addWidget(color_label)
-
-        # Agregar el grupo de la paleta inicial al layout lateral
-        self.side_layout.addWidget(self.initial_palette_group)
-
-        # Crear un grupo para cada paleta de Copper
+        # Agregar grupos para cada paleta de Copper
         for i, copper in enumerate(self.coppers):
-            copper_palette_group = QGroupBox(f"Paleta de Copper {i + 1}")
-            copper_color_layout = QHBoxLayout(copper_palette_group)
+            add_palette_group(f"Paleta de Copper {i + 1}", copper.palette.values())
 
-            for j, color in enumerate(copper.palette.values()):
-                color_label = QLabel(self)
-                color_label.setFixedSize(30, 30)
-                color_label.setStyleSheet(f"background-color: rgb{color};")
-                copper_color_layout.addWidget(color_label)
-
-            # Agregar el grupo de Copper al layout lateral
-            self.side_layout.addWidget(copper_palette_group)
-
-    def show_copper_palette(self, copper):
-        # Limpiar los QLabel anteriores en el layout lateral
-        for i in reversed(range(self.side_layout.count())):
-            item = self.side_layout.itemAt(i)
+    def clear_layout(self, layout):
+        for i in reversed(range(layout.count())):
+            item = layout.itemAt(i)
             if item.widget():
                 item.widget().setParent(None)
 
-        # Crear un grupo para la paleta original
-        original_palette_group = QGroupBox("Paleta Original")
-        original_color_layout = QHBoxLayout(original_palette_group)
-        
-        for i, color in enumerate(self.original_colors):
-            color_label = QLabel(self)
-            color_label.setFixedSize(30, 30)
-            color_label.setStyleSheet(f"background-color: rgb{color};")
-            original_color_layout.addWidget(color_label)
 
-        # Crear un grupo para la paleta de Copper
-        copper_palette_group = QGroupBox("Paleta de Copper")
-        copper_color_layout = QHBoxLayout(copper_palette_group)
-        
-        for i, color in enumerate(copper.palette):
-            color_label = QLabel(self)
-            color_label.setFixedSize(30, 30)
-            color_label.setStyleSheet(f"background-color: rgb{color};")
-            copper_color_layout.addWidget(color_label)
-
-        # Agregar los grupos al layout lateral
-        self.side_layout.addWidget(original_palette_group)
-        self.side_layout.addWidget(copper_palette_group)
 
     def reset_copper_effect(self):
         # Restaurar el estado del efecto Copper
