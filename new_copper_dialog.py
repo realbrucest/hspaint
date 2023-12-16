@@ -1,5 +1,7 @@
-from PyQt5.QtWidgets import QLabel, QDialog, QLineEdit, QVBoxLayout, QWidget, QRadioButton, QPushButton, QFileDialog
+from PyQt5.QtWidgets import QLabel, QRadioButton, QVBoxLayout, QWidget, QPushButton, QFileDialog, QDialog, QHBoxLayout
+from PyQt5.QtGui import QPixmap, QColor
 from PyQt5.QtCore import Qt
+from random import randint
 
 class NewCopperDialog(QDialog):
     def __init__(self, parent=None):
@@ -30,6 +32,9 @@ class NewCopperDialog(QDialog):
         confirm_button.clicked.connect(self.confirm_palette)
         layout.addWidget(confirm_button)
 
+        self.palette_display_layout = QHBoxLayout()
+        layout.addLayout(self.palette_display_layout)
+
         self.setLayout(layout)
 
     def set_palette_option(self, option):
@@ -47,6 +52,27 @@ class NewCopperDialog(QDialog):
             self.palette_text = "Modify Palette"  # Reemplaza esto con tu lógica
         elif self.palette_option == "random":
             # Lógica para generar una nueva paleta aleatoria
-            self.palette_text = "Random Palette"  # Reemplaza esto con tu lógica
+            self.generate_and_display_random_palette()
 
-        self.accept()
+    def generate_and_display_random_palette(self):
+        new_palette = [(randint(0, 255), randint(0, 255), randint(0, 255)) for _ in range(16)]
+        self.display_palette(new_palette)
+
+    def display_palette(self, palette):
+        # Limpiar cualquier widget anterior en el diseño de la paleta
+        for i in reversed(range(self.palette_display_layout.count())):
+            item = self.palette_display_layout.itemAt(i)
+            if item.widget():
+                item.widget().setParent(None)
+
+        # Mostrar los colores de la paleta horizontalmente
+        for color in palette:
+            color_label = QLabel(self)
+            color_label.setFixedSize(30, 30)
+            color_label.setStyleSheet(f"background-color: rgb{color};")
+            self.palette_display_layout.addWidget(color_label)
+
+        # Añadir el botón de regenerar
+        regenerate_button = QPushButton("Regenerar", self)
+        regenerate_button.clicked.connect(self.generate_and_display_random_palette)
+        self.palette_display_layout.addWidget(regenerate_button)
