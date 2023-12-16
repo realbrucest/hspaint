@@ -106,7 +106,8 @@ class ImageEditorWidget(QWidget):
             self.copper_position_slider,
             self.slider_position_label,
             self.side_layout,
-            self.edit_history
+            self.edit_history,
+            self.copper_status_label
         )
 
     def initialize_image_lines(self):
@@ -122,6 +123,7 @@ class ImageEditorWidget(QWidget):
         if effect_enabled:
             self.copper_effect_editor.apply_copper_effect(self.initial_palette)
             self.update_image_with_current_zoom()
+            self.copper_effect_editor.show_copper_palettes()
         else:
             self.reset_copper_effect()
 
@@ -202,6 +204,7 @@ class ImageEditorWidget(QWidget):
         self.coppers.append(new_copper)
 
         # Actualizar la interfaz gráfica
+        self.copper_effect_editor.apply_copper_effect(self.initial_palette)
         self.update_image_with_current_zoom()
         self.copper_effect_editor.show_copper_palettes()
 
