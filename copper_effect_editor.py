@@ -67,12 +67,21 @@ class CopperEffectEditor:
         self.edit_history.append(f"Añadir instancia de Copper en posición {position}")
         print(f"Instancia de Copper añadida: {new_copper}")
 
+        self.show_info_dialog(f"Instancia de Copper añadida en posición {position}.")
+
     def show_warning_dialog(self, message):
         warning_dialog = QMessageBox()
         warning_dialog.setIcon(QMessageBox.Warning)
         warning_dialog.setText(message)
         warning_dialog.setWindowTitle("Aviso")
         warning_dialog.exec_()
+
+    def show_info_dialog(self, message):
+        info_dialog = QMessageBox()
+        info_dialog.setIcon(QMessageBox.Information)
+        info_dialog.setText(message)
+        info_dialog.setWindowTitle("Información")
+        info_dialog.exec_()
 
     def get_palette_at_position(self, position):
         palette = []
