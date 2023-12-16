@@ -18,17 +18,17 @@ class NewCopperDialog(QDialog):
         label = QLabel("Seleccione una opción:")
         layout.addWidget(label)
 
-        load_palette_button = QRadioButton("Cargar paleta desde archivo PAL", self)
-        modify_palette_button = QRadioButton("Modificar paleta previa", self)
-        random_palette_button = QRadioButton("Generar nueva paleta aleatoria", self)
+        self.load_palette_button = QRadioButton("Cargar paleta desde archivo PAL", self)
+        self.modify_palette_button = QRadioButton("Modificar paleta previa", self)
+        self.random_palette_button = QRadioButton("Generar nueva paleta aleatoria", self)
 
-        load_palette_button.toggled.connect(lambda: self.set_palette_option("load"))
-        modify_palette_button.toggled.connect(lambda: self.set_palette_option("modify"))
-        random_palette_button.toggled.connect(lambda: self.set_palette_option("random"))
+        self.load_palette_button.clicked.connect(lambda: self.set_palette_option("load"))
+        self.modify_palette_button.clicked.connect(self.display_previous_palette)
+        self.random_palette_button.clicked.connect(lambda: self.set_palette_option("random"))
 
-        layout.addWidget(load_palette_button)
-        layout.addWidget(modify_palette_button)
-        layout.addWidget(random_palette_button)
+        layout.addWidget(self.load_palette_button)
+        layout.addWidget(self.modify_palette_button)
+        layout.addWidget(self.random_palette_button)
 
         confirm_button = QPushButton("Confirmar", self)
         confirm_button.clicked.connect(self.confirm_palette)
@@ -36,6 +36,11 @@ class NewCopperDialog(QDialog):
 
         self.palette_display_layout = QHBoxLayout()
         layout.addLayout(self.palette_display_layout)
+
+        # Inicializar el botón de regenerar como invisible
+        self.regenerate_button = QPushButton("Regenerar", self)
+        self.regenerate_button.clicked.connect(self.regenerate_palette)
+        self.regenerate_button.hide()  # Ocultar inicialmente el botón de regenerar
 
         self.setLayout(layout)
 
@@ -54,13 +59,15 @@ class NewCopperDialog(QDialog):
             previous_palette = self.get_previous_palette()
             self.display_palette(previous_palette)
         elif self.palette_option == "random":
-            # Lógica para generar una nueva paleta aleatoria
-            new_palette = self.generate_random_palette()
-            self.display_palette(new_palette)
-
+            # Lógica para generar una nueva paleta aleatoria y mostrarla
+            self.generate_and_display_random_palette()
 
     def generate_random_palette(self):
         return [(randint(0, 255), randint(0, 255), randint(0, 255)) for _ in range(16)]
+
+    def generate_and_display_random_palette(self):
+        new_palette = self.generate_random_palette()
+        self.display_palette(new_palette)
 
     def display_palette(self, palette):
         self.clear_palette_display()
@@ -70,10 +77,17 @@ class NewCopperDialog(QDialog):
             color_label = ColorPickerLabel(color, self)
             self.palette_display_layout.addWidget(color_label)
 
-        # Añadir el botón de regenerar
-        regenerate_button = QPushButton("Regenerar", self)
-        regenerate_button.clicked.connect(self.regenerate_palette)
-        self.palette_display_layout.addWidget(regenerate_button)
+        # Mostrar u ocultar el botón de regenerar según la opción seleccionada
+        if self.palette_option == "random":
+            self.palette_display_layout.addWidget(self.regenerate_button)  # Agregar el botón a la derecha de la paleta
+            self.regenerate_button.show()
+        else:
+            self.regenerate_button.hide()
+
+    def display_previous_palette(self):
+        # Obtener la paleta previa del Copper anterior al actual
+        previous_palette = self.get_previous_palette()
+        self.display_palette(previous_palette)
 
     def clear_palette_display(self):
         # Limpiar cualquier widget anterior en el diseño de la paleta
@@ -83,8 +97,7 @@ class NewCopperDialog(QDialog):
                 item.widget().setParent(None)
 
     def regenerate_palette(self):
-        new_palette = self.generate_random_palette()
-        self.display_palette(new_palette)
-    
+        self.generate_and_display_random_palette()
+
     def get_previous_palette(self):
-        return self.coppers[-1].palette
+        return self.previous_palette

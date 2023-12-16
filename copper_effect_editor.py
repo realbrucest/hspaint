@@ -78,7 +78,7 @@ class CopperEffectEditor:
             self.show_warning_dialog(error_message)
             return
 
-        new_copper_dialog = NewCopperDialog(parent=None)  # Asegúrate de pasar self como el objeto QWidget padre
+        new_copper_dialog = NewCopperDialog(self.get_previous_palette(), parent=None)  # Asegúrate de pasar self como el objeto QWidget padre
         result = new_copper_dialog.exec_()
 
         if result == NewCopperDialog.Accepted:
@@ -87,6 +87,9 @@ class CopperEffectEditor:
 
             # Puedes procesar la palette_text según tus necesidades
             print(f"Nueva paleta seleccionada: {palette_text}")
+
+    def get_previous_palette(self):
+        return self.coppers[-1].palette
 
     def is_valid_copper_position(self, new_position):
         min_line_distance = 8  # Separación mínima de 8 líneas

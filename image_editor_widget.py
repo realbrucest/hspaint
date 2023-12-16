@@ -14,7 +14,7 @@ from copper_effect_editor import Copper, CopperEffectEditor
 
 from color_picker_label import ColorPickerLabel  # Importamos la nueva clase
 
-DEFAULT_ZOOM_LEVEL = 4.0
+DEFAULT_ZOOM_LEVEL = 1.0
 
 
 class ImageEditorWidget(QWidget):
