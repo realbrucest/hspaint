@@ -166,15 +166,14 @@ class ImageEditorWidget(QWidget):
             self.image_lines.append(ImageLine(line_image, palette_index))
 
     def toggle_copper_effect(self, state):
-        if state == Qt.Checked:
+        effect_enabled = state == Qt.Checked
+        self.copper_status_label.setText(f"Efecto Copper: {'Activado' if effect_enabled else 'Desactivado'}")
+        self.initial_palette_group.setVisible(effect_enabled)
+
+        if effect_enabled:
             self.apply_copper_effect()
-            self.copper_status_label.setText("Efecto Copper: Activado")
-            self.initial_palette_group.show()  # Mostrar el grupo de la paleta inicial
         else:
             self.reset_copper_effect()
-            self.copper_status_label.setText("Efecto Copper: Desactivado")
-            self.initial_palette_group.hide()  # Ocultar el grupo de la paleta inicial
-
 
     
     def convert_pil_to_qimage(self, pil_image):
@@ -209,15 +208,10 @@ class ImageEditorWidget(QWidget):
     def update_image_with_current_zoom(self):
         current_zoom = self.get_current_zoom_level()
 
-        # Crear una nueva imagen con todas las líneas combinadas
+        # Crear, escalar y mostrar la imagen combinada
         combined_image = self.get_combined_image()
-
-        # Escalar la imagen de acuerdo al nivel de zoom
         new_size = (int(combined_image.width * current_zoom), int(combined_image.height * current_zoom))
-        resized_image = combined_image.resize(new_size)
-
-        # Mostrar la imagen combinada y escalada en la etiqueta
-        self.image_label.setPixmap(QPixmap.fromImage(self.convert_pil_to_qimage(resized_image)))
+        self.image_label.setPixmap(QPixmap.fromImage(self.convert_pil_to_qimage(combined_image.resize(new_size))))
 
     def undo_last_change(self):
         # Deshacer el último cambio si hay cambios en el historial
@@ -232,24 +226,15 @@ class ImageEditorWidget(QWidget):
             self.update_image_with_current_zoom()
 
     def show_color_picker(self, event, index):
-        # Abrir el diálogo de selección de color
         color = QColorDialog.getColor(QColor(*self.get_palette_color(index)), self)
-
+        
         if color.isValid():
-            # Convertir el color de QColor a RGB tuple
             new_color = (color.red(), color.green(), color.blue())
-
-            # Guardar el estado actual en el historial
             self.edit_history.append(self.get_current_state())
-
-            # Cambiar el color en la paleta
             self.change_palette_color_at_index(index, new_color)
-
-            # Actualizar el color del label
             self.update_color_label(index)
-
-            # Actualizar la etiqueta de la imagen con el nivel de zoom actual
             self.update_image_with_current_zoom()
+
 
     def change_palette(self, new_palette):
         # Cambiar los colores en la paleta
@@ -289,36 +274,17 @@ class ImageEditorWidget(QWidget):
         return tuple(color)
 
     def apply_copper_effect(self):
-        # Guardar el estado actual en el historial
         self.edit_history.append(self.get_current_state())
-
-        # Obtener la paleta actualizada desde las líneas de la imagen
         current_palette = [self.get_palette_color(i) for i in range(16)]
-
-        # Crear una nueva instancia de Copper y agregarla a la lista
-        new_copper = Copper(self.copper_position_slider.value(), {i: color for i, color in enumerate(current_palette)})
-        self.coppers.append(new_copper)
-
-        # Aplicar el efecto Copper cambiando las paletas de las líneas de la imagen
+        self.coppers.append(Copper(self.copper_position_slider.value(), {i: color for i, color in enumerate(current_palette)}))
         for i, image_line in enumerate(self.image_lines):
             image_line.palette_index = i % 16
-
-        # Actualizar la etiqueta de la imagen con el nivel de zoom actual
         self.update_image_with_current_zoom()
-
-        # Actualizar el QLabel de posición del slider
         self.slider_position_label.setText(f"Posición Y del Slider: {self.copper_position_slider.value()}")
-
-        # Actualizar el QLabel de estado del Copper
         self.copper_status_label.setText("Efecto Copper: Activado")
-
-        # Mostrar la paleta en el panel lateral
         self.show_copper_palettes()
 
     def show_copper_palettes(self):
-        # Limpiar los QLabel anteriores en el layout lateral
-        self.clear_layout(self.side_layout)
-
         # Función auxiliar para crear y agregar un grupo de paleta
         def add_palette_group(title, colors):
             group = QGroupBox(title)
@@ -334,29 +300,13 @@ class ImageEditorWidget(QWidget):
         for i, copper in enumerate(self.coppers):
             add_palette_group(f"Paleta de Copper {i + 1}", copper.palette.values())
 
-    def clear_layout(self, layout):
-        for i in reversed(range(layout.count())):
-            item = layout.itemAt(i)
-            if item.widget():
-                item.widget().setParent(None)
-
-
-
     def reset_copper_effect(self):
-        # Restaurar el estado del efecto Copper
         self.undo_last_change()
 
     def generate_new_palette(self):
-        # Generar una nueva paleta de colores
         new_palette = [(randint(0, 255), randint(0, 255), randint(0, 255)) for _ in range(16)]
-
-        # Guardar el estado actual en el historial
         self.edit_history.append(self.get_current_state())
-
-        # Cambiar los colores en la paleta
         self.change_palette(new_palette)
-
-        # Actualizar la etiqueta de la imagen con el nivel de zoom actual
         self.update_image_with_current_zoom()
 
     def update_copper_position(self, position):
