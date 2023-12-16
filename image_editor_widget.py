@@ -92,6 +92,10 @@ class ImageEditorWidget(QWidget):
             color_label.setStyleSheet(f"background-color: rgb{color};")
             self.initial_color_layout.addWidget(color_label)
         self.side_layout.addWidget(self.initial_palette_group)
+        # Agregar un botón para agregar instancias de Copper
+        self.add_copper_button = QPushButton("Agregar Instancia de Copper", self)
+        self.add_copper_button.clicked.connect(self.add_copper_instance)
+        self.side_layout.addWidget(self.add_copper_button)
         main_layout_splitter.addWidget(side_panel)
         main_layout.addLayout(main_layout_splitter)
         main_layout.addWidget(color_group_box)
@@ -109,6 +113,9 @@ class ImageEditorWidget(QWidget):
             self.edit_history,
             self.copper_status_label
         )
+
+    def add_copper_instance(self):
+        self.copper_effect_editor.add_copper_instance()
 
     def initialize_image_lines(self):
         for i in range(self.image.height):

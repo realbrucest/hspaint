@@ -36,3 +36,4 @@ class PaletteEditor:
         palette = list(self.image_lines[0].image.getpalette())
         color = tuple(palette[color_start:color_end])
         return color
+
