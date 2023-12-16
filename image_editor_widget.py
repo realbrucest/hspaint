@@ -119,13 +119,17 @@ class ImageEditorWidget(QWidget):
     def toggle_copper_effect(self, state):
         effect_enabled = state == Qt.Checked
         self.copper_status_label.setText(f"Efecto Copper: {'Activado' if effect_enabled else 'Desactivado'}")
-        self.initial_palette_group.setVisible(effect_enabled)
+        
+        # La siguiente línea es la que estamos modificando
+        self.initial_palette_group.setVisible(True)  # Mostrar la paleta inicial siempre
+
         if effect_enabled:
             self.copper_effect_editor.apply_copper_effect(self.initial_palette)
             self.update_image_with_current_zoom()
             self.copper_effect_editor.show_copper_palettes()
         else:
             self.reset_copper_effect()
+
 
     def convert_pil_to_qimage(self, pil_image):
         image = pil_image.convert("RGBA")

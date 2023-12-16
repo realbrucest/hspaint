@@ -26,12 +26,13 @@ class PaletteEditor:
             image_line.image.putpalette(palette)
 
     def get_palette_color(self, index):
-        palette = list(self.image_lines[0].image.getpalette())  # Convertir a lista para acceder por índice
-
+        palette_size = len(self.image_lines[0].image.getpalette())
         # Asegurarse de que el índice no sea mayor que la longitud de la paleta
-        index %= len(palette) // 3
+        if palette_size > 0:
+            index %= palette_size // 3
 
         color_start = index * 3
         color_end = (index + 1) * 3
+        palette = list(self.image_lines[0].image.getpalette())
         color = tuple(palette[color_start:color_end])
         return color
