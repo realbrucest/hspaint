@@ -37,3 +37,24 @@ class PaletteEditor:
         color = tuple(palette[color_start:color_end])
         return color
 
+    @staticmethod
+    def load_palette_from_file(file_path):
+        with open(file_path, 'r') as file:
+            # Lee las líneas del archivo
+            lines = file.readlines()
+
+            # Verifica si el formato es válido
+            if len(lines) < 3 or lines[0].strip() != 'JASC-PAL' or lines[1].strip() != '0100':
+                raise ValueError('Formato de archivo de paleta no válido.')
+
+            # Extrae el número de colores de la paleta
+            num_colors = int(lines[2].strip())
+
+            # Verifica si el número de colores es válido
+            if num_colors != 16:
+                raise ValueError('El número de colores en la paleta debe ser 16.')
+
+            # Extrae los colores de la paleta y crea una lista de tuplas
+            palette_colors = [tuple(map(int, line.split())) for line in lines[3:]]
+
+            return palette_colors
