@@ -2,12 +2,14 @@ from PyQt5.QtWidgets import QLabel, QRadioButton, QVBoxLayout, QWidget, QPushBut
 from PyQt5.QtGui import QPixmap, QColor
 from PyQt5.QtCore import Qt
 from random import randint
+from color_picker_label import ColorPickerLabel
 
 class NewCopperDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, previous_palette=None, parent=None):
         super().__init__(parent)
         self.palette_option = None
         self.palette_text = None
+        self.previous_palette = previous_palette
         self.init_ui()
 
     def init_ui(self):
@@ -48,12 +50,14 @@ class NewCopperDialog(QDialog):
             if file_path:
                 self.palette_text = file_path
         elif self.palette_option == "modify":
-            # Lógica para modificar la paleta previa
-            self.palette_text = "Modify Palette"  # Reemplaza esto con tu lógica
+            # Obtener la paleta previa del Copper de índice cero
+            previous_palette = self.get_previous_palette()
+            self.display_palette(previous_palette)
         elif self.palette_option == "random":
             # Lógica para generar una nueva paleta aleatoria
             new_palette = self.generate_random_palette()
             self.display_palette(new_palette)
+
 
     def generate_random_palette(self):
         return [(randint(0, 255), randint(0, 255), randint(0, 255)) for _ in range(16)]
@@ -63,9 +67,7 @@ class NewCopperDialog(QDialog):
 
         # Mostrar los colores de la paleta horizontalmente
         for color in palette:
-            color_label = QLabel(self)
-            color_label.setFixedSize(30, 30)
-            color_label.setStyleSheet(f"background-color: rgb{color};")
+            color_label = ColorPickerLabel(color, self)
             self.palette_display_layout.addWidget(color_label)
 
         # Añadir el botón de regenerar
@@ -83,3 +85,6 @@ class NewCopperDialog(QDialog):
     def regenerate_palette(self):
         new_palette = self.generate_random_palette()
         self.display_palette(new_palette)
+    
+    def get_previous_palette(self):
+        return self.coppers[-1].palette

@@ -10,10 +10,12 @@ class ColorPickerLabel(QLabel):
         self.mousePressEvent = self.show_color_picker
 
     def show_color_picker(self, event):
-        color_dialog = QColorDialog(QColor(*self.color), self)
+        color_dialog = QColorDialog(self)
+        color_dialog.setCurrentColor(QColor(*self.color))
         color_dialog.colorSelected.connect(self.update_color)
         color_dialog.exec_()
 
-    def update_color(self, new_color):
-        self.color = (new_color.red(), new_color.green(), new_color.blue())
-        self.setStyleSheet(f"background-color: rgb{self.color};")
+    def update_color(self, color):
+        new_color = (color.red(), color.green(), color.blue())
+        self.setStyleSheet(f"background-color: rgb{new_color};")
+        self.color = new_color

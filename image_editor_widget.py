@@ -29,6 +29,7 @@ class ImageEditorWidget(QWidget):
         self.initialize_image_lines()
         self.palette_editor = PaletteEditor(self.image_lines)
         self.initial_palette = [self.palette_editor.get_palette_color(i) for i in range(16)]
+        self.create_copper_zero()
         self.image_label = QLabel(self)
         self.image_label.setPixmap(QPixmap.fromImage(self.convert_pil_to_qimage(self.get_combined_image())))
         self.scroll_area = QScrollArea(self)
@@ -108,6 +109,11 @@ class ImageEditorWidget(QWidget):
 
     def add_copper_instance(self):
         self.copper_effect_editor.add_copper_instance()
+
+    def create_copper_zero(self):
+        # Creamos el Copper cero con la paleta de la imagen cargada
+        copper_zero_palette = [self.palette_editor.get_palette_color(i) for i in range(16)]
+        self.coppers.append(Copper(position=0, palette=copper_zero_palette))
 
     def initialize_image_lines(self):
         for i in range(self.image.height):
