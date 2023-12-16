@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QLabel, QMessageBox, QListWidget, QListWidgetItem, QPushButton
+from new_copper_dialog import NewCopperDialog
 
 class Copper:
     def __init__(self, position, palette):
@@ -77,19 +78,15 @@ class CopperEffectEditor:
             self.show_warning_dialog(error_message)
             return
 
-        palette = [0] * 16  # Paleta inicial vacía
-        new_copper = Copper(position, palette)
-        self.coppers.append(new_copper)
+        new_copper_dialog = NewCopperDialog(parent=None)  # Asegúrate de pasar self como el objeto QWidget padre
+        result = new_copper_dialog.exec_()
 
-        # Ordenar la lista de coppers
-        self.coppers.sort(key=lambda copper: copper.position)
+        if result == NewCopperDialog.Accepted:
+            # Aquí accedemos a la paleta_text seleccionada en el diálogo
+            palette_text = new_copper_dialog.palette_text
 
-        self.show_copper_palettes()
-        self.edit_history.append(f"Añadiendo instancia de Copper en posición: {position}")
-        self.show_info_dialog(f"Instancia de Copper añadida en posición: {position}")
-
-        print(f"Instancia de Copper añadida: {new_copper}")
-
+            # Puedes procesar la palette_text según tus necesidades
+            print(f"Nueva paleta seleccionada: {palette_text}")
 
     def is_valid_copper_position(self, new_position):
         min_line_distance = 8  # Separación mínima de 8 líneas
