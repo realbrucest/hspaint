@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QLabel
+from PyQt5.QtWidgets import QLabel, QMessageBox
 
 class Copper:
     def __init__(self, position, palette):
@@ -51,13 +51,28 @@ class CopperEffectEditor:
 
     def add_copper_instance(self):
         position = self.copper_position_slider.value()
-        palette = self.get_palette_at_position(position)
+        
+        # Evitar añadir Copper en la línea cero
+        if position == 0:
+            self.show_warning_dialog("No se permite añadir una instancia de Copper en la línea cero.")
+            return
 
+        print(f"Añadiendo instancia de Copper en posición: {position}")
+
+        palette = self.get_palette_at_position(position)
         new_copper = Copper(position, palette)
         self.coppers.append(new_copper)
 
         self.show_copper_palettes()
         self.edit_history.append(f"Añadir instancia de Copper en posición {position}")
+        print(f"Instancia de Copper añadida: {new_copper}")
+
+    def show_warning_dialog(self, message):
+        warning_dialog = QMessageBox()
+        warning_dialog.setIcon(QMessageBox.Warning)
+        warning_dialog.setText(message)
+        warning_dialog.setWindowTitle("Aviso")
+        warning_dialog.exec_()
 
     def get_palette_at_position(self, position):
         palette = []
