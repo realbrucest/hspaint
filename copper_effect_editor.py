@@ -71,8 +71,10 @@ class CopperEffectEditor:
         position = self.copper_position_slider.value()
 
         # Validar la posición
-        if not self.is_valid_copper_position(position):
-            self.show_warning_dialog("Error: La posición del nuevo Copper no es válida.")
+        validation_result = self.is_valid_copper_position(position)
+        if not validation_result["is_valid"]:
+            error_message = f"Error: La posición del nuevo Copper no es válida.\n{validation_result['reason']}"
+            self.show_warning_dialog(error_message)
             return
 
         palette = [0] * 16  # Paleta inicial vacía
@@ -88,19 +90,20 @@ class CopperEffectEditor:
 
         print(f"Instancia de Copper añadida: {new_copper}")
 
+
     def is_valid_copper_position(self, new_position):
         min_line_distance = 8  # Separación mínima de 8 líneas
 
         # Verificar que no sea la línea cero o inferior a ocho
         if new_position <= 8:
-            return False
+            return {"is_valid": False, "reason": "La posición debe ser mayor que 8."}
 
         # Verificar la separación mínima
         for copper_instance in self.coppers:
             if abs(new_position - copper_instance.position) < min_line_distance:
-                return False
+                return {"is_valid": False, "reason": "La separación entre coppers debe ser de al menos 8 líneas."}
 
-        return True
+        return {"is_valid": True, "reason": ""}
 
     def show_warning_dialog(self, message):
         warning_dialog = QMessageBox()

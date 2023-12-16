@@ -64,6 +64,8 @@ class ImageEditorWidget(QWidget):
         self.copper_position_slider = QSlider(Qt.Horizontal, self)
         self.copper_position_slider.setMaximum(self.image.height - 1)
         self.copper_position_slider.setValue(0)
+        #self.copper_position_slider.setSingleStep(8)  # Establecer el paso
+        #self.copper_position_slider.setTickInterval(8)  # Establecer el intervalo entre marcas
         self.copper_position_slider.valueChanged.connect(self.update_copper_position)
         default_zoom_index = zoom_levels.index(DEFAULT_ZOOM_LEVEL)
         self.zoom_radio_buttons[default_zoom_index].setChecked(True)
