@@ -52,18 +52,14 @@ class NewCopperDialog(QDialog):
             self.palette_text = "Modify Palette"  # Reemplaza esto con tu lógica
         elif self.palette_option == "random":
             # Lógica para generar una nueva paleta aleatoria
-            self.generate_and_display_random_palette()
+            new_palette = self.generate_random_palette()
+            self.display_palette(new_palette)
 
-    def generate_and_display_random_palette(self):
-        new_palette = [(randint(0, 255), randint(0, 255), randint(0, 255)) for _ in range(16)]
-        self.display_palette(new_palette)
+    def generate_random_palette(self):
+        return [(randint(0, 255), randint(0, 255), randint(0, 255)) for _ in range(16)]
 
     def display_palette(self, palette):
-        # Limpiar cualquier widget anterior en el diseño de la paleta
-        for i in reversed(range(self.palette_display_layout.count())):
-            item = self.palette_display_layout.itemAt(i)
-            if item.widget():
-                item.widget().setParent(None)
+        self.clear_palette_display()
 
         # Mostrar los colores de la paleta horizontalmente
         for color in palette:
@@ -74,5 +70,16 @@ class NewCopperDialog(QDialog):
 
         # Añadir el botón de regenerar
         regenerate_button = QPushButton("Regenerar", self)
-        regenerate_button.clicked.connect(self.generate_and_display_random_palette)
+        regenerate_button.clicked.connect(self.regenerate_palette)
         self.palette_display_layout.addWidget(regenerate_button)
+
+    def clear_palette_display(self):
+        # Limpiar cualquier widget anterior en el diseño de la paleta
+        for i in reversed(range(self.palette_display_layout.count())):
+            item = self.palette_display_layout.itemAt(i)
+            if item.widget():
+                item.widget().setParent(None)
+
+    def regenerate_palette(self):
+        new_palette = self.generate_random_palette()
+        self.display_palette(new_palette)

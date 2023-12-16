@@ -1,4 +1,7 @@
-from PyQt5.QtWidgets import QLabel, QVBoxLayout, QHBoxLayout, QColorDialog, QWidget, QFileDialog, QRadioButton, QGroupBox, QShortcut, QScrollArea, QCheckBox, QPushButton, QSlider
+from PyQt5.QtWidgets import (
+    QLabel, QVBoxLayout, QHBoxLayout, QColorDialog, QWidget,
+    QRadioButton, QGroupBox, QShortcut, QScrollArea, QCheckBox, QPushButton, QSlider
+)
 from PyQt5.QtGui import QPixmap, QImage, QColor, QKeySequence
 from PyQt5.QtCore import Qt, QEvent
 from PIL import Image
@@ -9,10 +12,9 @@ from image_line import ImageLine
 from palette_editor import PaletteEditor
 from copper_effect_editor import Copper, CopperEffectEditor
 
+from color_picker_label import ColorPickerLabel  # Importamos la nueva clase
+
 DEFAULT_ZOOM_LEVEL = 4.0
-
-
-
 
 
 class ImageEditorWidget(QWidget):
@@ -38,11 +40,7 @@ class ImageEditorWidget(QWidget):
         self.color_label_group = []
         self.original_colors = []
         for i in range(16):
-            color_label = QLabel(self)
-            color_label.setFixedSize(30, 30)
-            original_color = self.palette_editor.get_palette_color(i)
-            self.original_colors.append(original_color)
-            color_label.setStyleSheet(f"background-color: rgb{original_color};")
+            color_label = ColorPickerLabel(self.palette_editor.get_palette_color(i), self)  # Usamos la nueva clase
             color_label.mousePressEvent = lambda event, i=i: self.show_color_picker(event, i)
             self.color_label_group.append(color_label)
             color_layout.addWidget(color_label)
@@ -59,14 +57,13 @@ class ImageEditorWidget(QWidget):
         self.copper_checkbox = QCheckBox("Activar Copper", self)
         self.copper_checkbox.setChecked(False)
         self.copper_checkbox.stateChanged.connect(self.toggle_copper_effect)
-        self.generate_palette_button = QPushButton("Generar Nueva Paleta", self)
-        self.generate_palette_button.clicked.connect(self.generate_new_palette)
+        raster_group_box = QGroupBox("Raster")
+        raster_layout = QVBoxLayout(raster_group_box)
         self.copper_position_slider = QSlider(Qt.Horizontal, self)
         self.copper_position_slider.setMaximum(self.image.height - 1)
         self.copper_position_slider.setValue(0)
-        #self.copper_position_slider.setSingleStep(8)  # Establecer el paso
-        #self.copper_position_slider.setTickInterval(8)  # Establecer el intervalo entre marcas
         self.copper_position_slider.valueChanged.connect(self.update_copper_position)
+        raster_layout.addWidget(self.copper_position_slider)
         default_zoom_index = zoom_levels.index(DEFAULT_ZOOM_LEVEL)
         self.zoom_radio_buttons[default_zoom_index].setChecked(True)
         self.set_zoom_level(DEFAULT_ZOOM_LEVEL)
@@ -89,9 +86,7 @@ class ImageEditorWidget(QWidget):
         self.initial_palette_group = QGroupBox("Paleta Inicial")
         self.initial_color_layout = QHBoxLayout(self.initial_palette_group)
         for i, color in enumerate(self.initial_palette):
-            color_label = QLabel(self)
-            color_label.setFixedSize(30, 30)
-            color_label.setStyleSheet(f"background-color: rgb{color};")
+            color_label = ColorPickerLabel(color, self)  # Usamos la nueva clase
             self.initial_color_layout.addWidget(color_label)
         self.side_layout.addWidget(self.initial_palette_group)
         main_layout_splitter.addWidget(side_panel)
@@ -99,8 +94,7 @@ class ImageEditorWidget(QWidget):
         main_layout.addWidget(color_group_box)
         main_layout.addWidget(zoom_group_box)
         main_layout.addWidget(self.copper_checkbox)
-        main_layout.addWidget(self.generate_palette_button)
-        main_layout.addWidget(self.copper_position_slider)
+        main_layout.addWidget(raster_group_box)
         self.scroll_area.installEventFilter(self)
         self.copper_effect_editor = CopperEffectEditor(
             self.image_lines,
@@ -200,22 +194,6 @@ class ImageEditorWidget(QWidget):
 
     def reset_copper_effect(self):
         self.undo_last_change()
-
-    def generate_new_palette(self):
-        position = self.copper_position_slider.value()
-        new_palette = [(randint(0, 255), randint(0, 255), randint(0, 255)) for _ in range(16)]
-        self.edit_history.append(self.get_current_state())
-
-        # Crear un nuevo objeto Copper
-        new_copper = Copper(position, {i: color for i, color in enumerate(new_palette)})
-
-        # Añadir el nuevo objeto Copper a la lista
-        self.coppers.append(new_copper)
-
-        # Actualizar la interfaz gráfica
-        self.copper_effect_editor.apply_copper_effect(self.initial_palette)
-        self.update_image_with_current_zoom()
-        self.copper_effect_editor.show_copper_palettes()
 
     def update_copper_position(self, position):
         self.edit_history.append(self.get_current_state())
