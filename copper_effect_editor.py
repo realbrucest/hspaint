@@ -52,12 +52,14 @@ class CopperEffectEditor:
         self.copper_palette_info_label.setText("Instancias de Copper:\n")
         self.copper_list_widget.clear()
 
-        for i, copper_instance in enumerate(self.coppers):
+        # Iterar a partir del segundo elemento de la lista
+        for i, copper_instance in enumerate(self.coppers[1:], start=1):
             info_text = f"Posición: {copper_instance.position}, Colores: {copper_instance.palette}"
             self.copper_palette_info_label.setText(f"{self.copper_palette_info_label.text()}\n{info_text}")
 
             item = QListWidgetItem(f"Posición: {copper_instance.position}")
             self.copper_list_widget.addItem(item)
+
 
     def get_copper_instance_at_position(self, position):
         return next((copper_instance for copper_instance in self.coppers if copper_instance.position == position), None)

@@ -24,8 +24,8 @@ class NewCopperDialog(QDialog):
         self.random_palette_button = QRadioButton("Generar nueva paleta aleatoria", self)
 
         self.load_palette_button.toggled.connect(self.on_load_palette_button_toggled)
-        self.modify_palette_button.toggled.connect(self.set_palette_option)
-        self.random_palette_button.toggled.connect(self.set_palette_option)
+        self.modify_palette_button.clicked.connect(lambda: self.set_palette_option("modify"))
+        self.random_palette_button.clicked.connect(lambda: self.set_palette_option("random"))
 
         layout.addWidget(self.load_palette_button)
         layout.addWidget(self.modify_palette_button)
