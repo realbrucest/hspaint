@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QLabel, QRadioButton, QVBoxLayout, QWidget, QPushButton, QFileDialog, QDialog, QHBoxLayout
 from PyQt5.QtGui import QPixmap, QColor
-from PyQt5.QtCore import Qt, pyqtSlot
+from PyQt5.QtCore import Qt
 from random import randint
 from color_picker_label import ColorPickerLabel
 from palette_editor import PaletteEditor
@@ -23,9 +23,9 @@ class NewCopperDialog(QDialog):
         self.modify_palette_button = QRadioButton("Modificar paleta previa", self)
         self.random_palette_button = QRadioButton("Generar nueva paleta aleatoria", self)
 
-        self.load_palette_button.clicked.connect(lambda: self.set_palette_option("load"))
-        self.modify_palette_button.clicked.connect(self.display_previous_palette)
-        self.random_palette_button.clicked.connect(lambda: self.set_palette_option("random"))
+        self.load_palette_button.toggled.connect(self.on_load_palette_button_toggled)
+        self.modify_palette_button.toggled.connect(self.set_palette_option)
+        self.random_palette_button.toggled.connect(self.set_palette_option)
 
         layout.addWidget(self.load_palette_button)
         layout.addWidget(self.modify_palette_button)
@@ -42,16 +42,58 @@ class NewCopperDialog(QDialog):
         layout.addWidget(self.regenerate_button)
 
         confirm_button = QPushButton("Confirmar", self)
-        confirm_button.clicked.connect(self.confirm_palette)
+        confirm_button.clicked.connect(self.confirm_and_close)
         layout.addWidget(confirm_button)
 
         self.setLayout(layout)
+
+    def on_load_palette_button_toggled(self, checked):
+        if checked:
+            self.set_palette_option("load")
+            self.load_palette_from_file()
 
     def set_palette_option(self, option):
         self.palette_option = option
         # Limpiar la paleta y ocultar el botón "Regenerar" al cambiar la opción
         self.clear_palette_display()
         self.hide_regenerate_button()
+
+        # Ejecutar el código correspondiente según la opción seleccionada
+        if self.palette_option == "modify":
+            self.display_previous_palette()
+        elif self.palette_option == "random":
+            self.generate_and_display_random_palette()
+
+    def get_current_palette(self):
+            palette = []
+            for i in range(16):
+                color_label = self.palette_display_layout.itemAt(i).widget()
+                color = color_label.color()
+                palette.append((color.red(), color.green(), color.blue()))
+            return palette
+
+    def confirm_and_close(self):
+        if self.palette_option == "load":
+            # No es necesario hacer nada aquí ya que la acción ocurre en on_load_palette_button_toggled
+            pass
+        elif self.palette_option == "modify":
+            current_palette = self.get_current_palette()
+            self.add_copper_instance(current_palette)
+            self.accept()  # Cerrar el diálogo después de registrar el copper
+        elif self.palette_option == "random":
+            current_palette = self.get_current_palette()
+            self.add_copper_instance(current_palette)
+            self.accept()  # Cerrar el diálogo después de registrar el copper
+
+    def load_palette_from_file(self):
+        file_dialog = QFileDialog()
+        file_path, _ = file_dialog.getOpenFileName(self, "Select PAL file", "", "PAL Files (*.pal);;All Files (*)")
+
+        if file_path:
+            self.palette_text = file_path
+            palette_colors = PaletteEditor.load_palette_from_file(file_path)
+            self.clear_palette_display()
+            self.display_palette(palette_colors)
 
     def confirm_palette(self):
         # Limpiar la paleta al confirmar
@@ -68,15 +110,6 @@ class NewCopperDialog(QDialog):
             self.display_previous_palette()
         elif self.palette_option == "random":
             self.generate_and_display_random_palette()
-
-    def load_palette_from_file(self, file_path):
-        try:
-            palette_colors = PaletteEditor.load_palette_from_file(file_path)
-            # Limpiar la paleta antes de cargarla
-            self.display_palette(palette_colors)
-            self.hide_regenerate_button()  # Ocultar el botón de regenerar
-        except ValueError as e:
-            print(f"Error al cargar la paleta desde el archivo: {e}")
 
     def generate_random_palette(self):
         return [(randint(0, 255), randint(0, 255), randint(0, 255)) for _ in range(16)]

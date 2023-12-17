@@ -5,6 +5,7 @@ class Copper:
     def __init__(self, position, palette):
         self.position = position
         self.palette = palette
+
 class CopperEffectEditor:
     def __init__(self, image_lines, coppers, copper_position_slider, slider_position_label, side_layout, edit_history, status_label):
         self.image_lines = image_lines
@@ -14,17 +15,16 @@ class CopperEffectEditor:
         self.side_layout = side_layout
         self.edit_history = edit_history
         self.status_label = status_label
+        self.new_copper_dialog = NewCopperDialog(self.get_previous_palette(), parent=None)
 
         # Llama al método para inicializar la interfaz gráfica
         self.init_ui_elements()
 
     def init_ui_elements(self):
-        self.copper_palette_info_label = QLabel()  # Inicializar aquí para evitar el AttributeError
-        # Agregar un QListWidget para mostrar los coppers en el panel lateral
+        self.copper_palette_info_label = QLabel()
         self.copper_list_widget = QListWidget()
         self.side_layout.addWidget(self.copper_list_widget)
 
-        # Botones para agregar y eliminar coppers
         add_copper_button = QPushButton("Agregar Copper")
         add_copper_button.clicked.connect(self.add_copper_instance)
         remove_copper_button = QPushButton("Eliminar Copper")
@@ -53,55 +53,63 @@ class CopperEffectEditor:
         self.copper_list_widget.clear()
 
         for i, copper_instance in enumerate(self.coppers):
-            self.copper_palette_info_label.setText(
-                f"{self.copper_palette_info_label.text()}\nPosición: {copper_instance.position}, "
-                f"Colores: {copper_instance.palette}"
-            )
+            info_text = f"Posición: {copper_instance.position}, Colores: {copper_instance.palette}"
+            self.copper_palette_info_label.setText(f"{self.copper_palette_info_label.text()}\n{info_text}")
 
-            # Agregar la instancia de Copper al QListWidget
             item = QListWidgetItem(f"Posición: {copper_instance.position}")
             self.copper_list_widget.addItem(item)
 
     def get_copper_instance_at_position(self, position):
-        for copper_instance in self.coppers:
-            if copper_instance.position == position:
-                return copper_instance
-        return None
+        return next((copper_instance for copper_instance in self.coppers if copper_instance.position == position), None)
 
-    def add_copper_instance(self):
+    def add_copper_instance(self, palette=None):
         position = self.copper_position_slider.value()
 
-        # Validar la posición
         validation_result = self.is_valid_copper_position(position)
         if not validation_result["is_valid"]:
             error_message = f"Error: La posición del nuevo Copper no es válida.\n{validation_result['reason']}"
             self.show_warning_dialog(error_message)
             return
 
-        new_copper_dialog = NewCopperDialog(self.get_previous_palette(), parent=None)  # Asegúrate de pasar self como el objeto QWidget padre
-        result = new_copper_dialog.exec_()
+        if not hasattr(self, 'new_copper_dialog') or not self.new_copper_dialog:
+            self.new_copper_dialog = NewCopperDialog(self.get_previous_palette(), parent=None)
+
+        new_palette = palette if palette else self.get_current_palette_from_dialog()
+        new_copper = Copper(position=position, palette=new_palette)
+        self.coppers.append(new_copper)
+
+        self.show_copper_palettes()
+
+        result = self.new_copper_dialog.exec_()
 
         if result == NewCopperDialog.Accepted:
-            # Aquí accedemos a la paleta_text seleccionada en el diálogo
-            palette_text = new_copper_dialog.palette_text
-
-            # Puedes procesar la palette_text según tus necesidades
+            palette_text = self.get_palette_text_from_dialog()
             print(f"Nueva paleta seleccionada: {palette_text}")
 
+    def get_current_palette_from_dialog(self):
+        if not self.new_copper_dialog:
+            # Si el diálogo no está inicializado, inicialízalo
+            self.new_copper_dialog = NewCopperDialog(self.get_previous_palette(), parent=None)
+        return [self.get_color_from_label(i) for i in range(16)]
+
+    def get_color_from_label(self, index):
+        color_label_item = self.new_copper_dialog.palette_display_layout.itemAt(index)
+        if color_label_item:
+            color_label = color_label_item.widget()
+            if color_label:
+                return (color_label.color().red(), color_label.color().green(), color_label.color().blue())
+        return None
     def get_previous_palette(self):
-        return self.coppers[-1].palette
+        return self.coppers[-1].palette if self.coppers else None
 
     def is_valid_copper_position(self, new_position):
-        min_line_distance = 8  # Separación mínima de 8 líneas
+        min_line_distance = 8
 
-        # Verificar que no sea la línea cero o inferior a ocho
         if new_position <= 8:
             return {"is_valid": False, "reason": "La posición debe ser mayor que 8."}
 
-        # Verificar la separación mínima
-        for copper_instance in self.coppers:
-            if abs(new_position - copper_instance.position) < min_line_distance:
-                return {"is_valid": False, "reason": "La separación entre coppers debe ser de al menos 8 líneas."}
+        if any(abs(new_position - copper_instance.position) < min_line_distance for copper_instance in self.coppers):
+            return {"is_valid": False, "reason": "La separación entre coppers debe ser de al menos 8 líneas."}
 
         return {"is_valid": True, "reason": ""}
 
@@ -120,11 +128,8 @@ class CopperEffectEditor:
         info_dialog.exec_()
 
     def get_palette_at_position(self, position):
-        palette = []
-        for i in range(16):
-            palette.append(self.image_lines[position].palette_index)
-        return palette
-    
+        return [self.image_lines[position].palette_index for _ in range(16)]
+
     def remove_selected_copper(self):
         selected_items = self.copper_list_widget.selectedItems()
         if not selected_items:
@@ -133,8 +138,7 @@ class CopperEffectEditor:
         item = selected_items[0]
         position_str = item.text().split(":")[1].strip()
         position = int(position_str)
-        
-        # Remover el copper correspondiente
+
         for i, copper_instance in enumerate(self.coppers):
             if copper_instance.position == position:
                 del self.coppers[i]
@@ -143,3 +147,6 @@ class CopperEffectEditor:
         self.show_copper_palettes()
         self.edit_history.append(f"Eliminar instancia de Copper en posición {position}")
         print(f"Instancia de Copper eliminada en posición: {position}")
+
+    def get_palette_text_from_dialog(self):
+        return [self.new_copper_dialog.palette_text[i] for i in range(16)]
