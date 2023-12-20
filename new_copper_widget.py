@@ -1,23 +1,23 @@
-from PyQt5.QtWidgets import QLabel, QRadioButton, QVBoxLayout, QWidget, QPushButton, QFileDialog, QDialog, QHBoxLayout
+from PyQt5.QtWidgets import QLabel, QRadioButton, QVBoxLayout, QGroupBox, QPushButton, QFileDialog, QHBoxLayout, QDialog
 from PyQt5.QtGui import QPixmap, QColor
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from random import randint
 from color_picker_label import ColorPickerLabel
 from palette_editor import PaletteEditor
 
-class NewCopperDialog(QDialog):
+class NewCopperWidget(QGroupBox):
+    accepted = pyqtSignal()
     def __init__(self, previous_palette=None, parent=None):
-        super().__init__(parent)
+        print(parent.coppers)
+        #super().__init__(f"Copper línea {parent.coppers.index(self) + 1}", parent)
+        super().__init__(f"Copper línea ...", parent)
         self.palette_option = None
         self.palette_text = None
         self.previous_palette = previous_palette
         self.init_ui()
 
     def init_ui(self):
-        layout = QVBoxLayout()
-
-        label = QLabel("Seleccione una opción:")
-        layout.addWidget(label)
+        layout = QVBoxLayout(self)
 
         self.load_palette_button = QRadioButton("Cargar paleta desde archivo PAL", self)
         self.modify_palette_button = QRadioButton("Modificar paleta previa", self)
@@ -65,12 +65,12 @@ class NewCopperDialog(QDialog):
             self.generate_and_display_random_palette()
 
     def get_current_palette(self):
-            palette = []
-            for i in range(16):
-                color_label = self.palette_display_layout.itemAt(i).widget()
-                color = color_label.color()
-                palette.append((color.red(), color.green(), color.blue()))
-            return palette
+        palette = []
+        for i in range(16):
+            color_label = self.palette_display_layout.itemAt(i).widget()
+            color = color_label.color()
+            palette.append((color.red(), color.green(), color.blue()))
+        return palette
 
     def confirm_and_close(self):
         if self.palette_option == "load":
@@ -79,11 +79,12 @@ class NewCopperDialog(QDialog):
         elif self.palette_option == "modify":
             current_palette = self.get_current_palette()
             self.add_copper_instance(current_palette)
-            self.accept()  # Cerrar el diálogo después de registrar el copper
+            self.parent().on_new_copper_widget_accepted()  # Llamar al método en CopperEffectEditor
         elif self.palette_option == "random":
             current_palette = self.get_current_palette()
             self.add_copper_instance(current_palette)
-            self.accept()  # Cerrar el diálogo después de registrar el copper
+            self.parent().on_new_copper_widget_accepted()  # Llamar al método en CopperEffectEditor
+        self.accepted.emit()
 
     def load_palette_from_file(self):
         file_dialog = QFileDialog()
@@ -94,22 +95,6 @@ class NewCopperDialog(QDialog):
             palette_colors = PaletteEditor.load_palette_from_file(file_path)
             self.clear_palette_display()
             self.display_palette(palette_colors)
-
-    def confirm_palette(self):
-        # Limpiar la paleta al confirmar
-        self.clear_palette_display()
-
-        if self.palette_option == "load":
-            file_dialog = QFileDialog()
-            file_path, _ = file_dialog.getOpenFileName(self, "Select PAL file", "", "PAL Files (*.pal);;All Files (*)")
-
-            if file_path:
-                self.palette_text = file_path
-                self.load_palette_from_file(file_path)
-        elif self.palette_option == "modify":
-            self.display_previous_palette()
-        elif self.palette_option == "random":
-            self.generate_and_display_random_palette()
 
     def generate_random_palette(self):
         return [(randint(0, 255), randint(0, 255), randint(0, 255)) for _ in range(16)]
